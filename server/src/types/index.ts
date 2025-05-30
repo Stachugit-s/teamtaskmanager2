@@ -69,7 +69,12 @@ export interface ITaskDocument extends ITask, Document {
 
 // Interface dla komentarza
 export interface IComment {
-    content: string;
-    task: string; // ID zadania
-    author: string; // ID użytkownika
+    text: string;
+    task: Types.ObjectId;
+    user: Types.ObjectId;
+    createdAt: Date;
+}
+
+export interface ICommentDocument extends IComment, Document {
+    _id: Types.ObjectId;
 }
