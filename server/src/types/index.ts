@@ -53,11 +53,18 @@ export interface IProjectDocument extends IProject, Document {
 // Interface dla zadania
 export interface ITask {
     title: string;
-    description?: string;
-    status: 'to-do' | 'in-progress' | 'completed';
+    description: string;
+    project: Types.ObjectId;
+    assignedTo?: Types.ObjectId;
+    createdBy: Types.ObjectId;
+    dueDate?: Date;
     priority: 'low' | 'medium' | 'high';
-    assignedTo?: string; // ID użytkownika
-    project: string; // ID projektu
+    status: 'todo' | 'in-progress' | 'review' | 'completed';
+    createdAt: Date;
+}
+
+export interface ITaskDocument extends ITask, Document {
+    _id: Types.ObjectId;
 }
 
 // Interface dla komentarza
