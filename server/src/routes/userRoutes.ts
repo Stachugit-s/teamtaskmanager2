@@ -5,7 +5,7 @@ import { protect } from '../middleware/auth';
 const router = express.Router();
 
 // Rejestracja nowego użytkownika
-router.post('/', registerUser);
+router.post('/register', registerUser);
 
 // Logowanie użytkownika
 router.post('/login', loginUser);

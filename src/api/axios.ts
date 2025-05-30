@@ -1,8 +1,7 @@
 // src/api/axios.ts
 import axios from 'axios';
 
-const baseURL = '/api'; // Podczas produkcji będzie to relatywna ścieżka
-// Dla rozwoju lokalnego możesz użyć: const baseURL = 'http://localhost:5000/api';
+const baseURL = 'http://localhost:5000/api';// Dla rozwoju lokalnego możesz użyć: const baseURL = 'http://localhost:5000/api';
 
 const api = axios.create({
     baseURL,
