@@ -36,13 +36,39 @@ import {
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
+// Definicje typów
+interface TeamMember {
+    _id: string;
+    name: string;
+    lastName: string;
+    email: string;
+}
+
+interface Team {
+    _id: string;
+    name: string;
+    description: string;
+    leader: TeamMember;
+    members: TeamMember[];
+    createdAt: string;
+}
+
+interface Project {
+    _id: string;
+    name: string;
+    description: string;
+    team: string;
+    status: string;
+    createdAt: string;
+}
+
 const TeamDetails = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    const [team, setTeam] = useState(null);
-    const [projects, setProjects] = useState([]);
+    const [team, setTeam] = useState<Team | null>(null);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [editMode, setEditMode] = useState(false);
@@ -55,16 +81,21 @@ const TeamDetails = () => {
 
     useEffect(() => {
         const fetchTeamDetails = async () => {
+            if (!id) return;
+
             try {
+                setLoading(true);
                 const teamResponse = await api.get(`/teams/${id}`);
+                console.log('Team response:', teamResponse.data);
                 setTeam(teamResponse.data);
                 setEditedTeam({
-                    name: teamResponse.data.name,
-                    description: teamResponse.data.description,
+                    name: teamResponse.data.name || '',
+                    description: teamResponse.data.description || '',
                 });
 
                 // Pobierz projekty zespołu
                 const projectsResponse = await api.get('/projects', { params: { teamId: id } });
+                console.log('Projects response:', projectsResponse.data);
                 setProjects(projectsResponse.data);
 
                 setLoading(false);
@@ -83,6 +114,8 @@ const TeamDetails = () => {
     };
 
     const handleCancelEdit = () => {
+        if (!team) return;
+
         setEditMode(false);
         setEditedTeam({
             name: team.name,
@@ -91,6 +124,8 @@ const TeamDetails = () => {
     };
 
     const handleSaveEdit = async () => {
+        if (!id) return;
+
         try {
             const response = await api.put(`/teams/${id}`, editedTeam);
             setTeam(response.data);
@@ -101,7 +136,7 @@ const TeamDetails = () => {
         }
     };
 
-    const handleInputChange = (e) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setEditedTeam({ ...editedTeam, [name]: value });
     };
@@ -116,6 +151,8 @@ const TeamDetails = () => {
     };
 
     const handleAddMember = async () => {
+        if (!id) return;
+
         try {
             const response = await api.post(`/teams/${id}/members`, { email: newMemberEmail });
             setTeam(response.data);
@@ -126,7 +163,9 @@ const TeamDetails = () => {
         }
     };
 
-    const handleRemoveMember = async (memberId) => {
+    const handleRemoveMember = async (memberId: string) => {
+        if (!id) return;
+
         try {
             const response = await api.delete(`/teams/${id}/members/${memberId}`);
             setTeam(response.data);
@@ -141,6 +180,8 @@ const TeamDetails = () => {
     };
 
     const handleDeleteConfirm = async () => {
+        if (!id) return;
+
         try {
             await api.delete(`/teams/${id}`);
             navigate('/teams');
@@ -160,12 +201,14 @@ const TeamDetails = () => {
         setNewProject({ name: '', description: '' });
     };
 
-    const handleNewProjectChange = (e) => {
+    const handleNewProjectChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setNewProject({ ...newProject, [name]: value });
     };
 
     const handleCreateProject = async () => {
+        if (!id) return;
+
         try {
             const response = await api.post('/projects', {
                 ...newProject,
@@ -203,7 +246,8 @@ const TeamDetails = () => {
         );
     }
 
-    const isTeamLeader = team.leader._id === user?._id;
+    // Zabezpieczenie przed próbą dostępu do nieistniejących właściwości
+    const isTeamLeader = user && team.leader && team.leader._id === user._id;
 
     return (
         <Box>
@@ -233,19 +277,25 @@ const TeamDetails = () => {
                         </Box>
 
                         <Typography variant="body1" sx={{ mb: 3 }}>
-                            {team.description}
+                            {team.description || 'Brak opisu'}
                         </Typography>
 
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                             Lider zespołu:
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                            <Avatar sx={{ mr: 2 }}>{team.leader.name.charAt(0)}</Avatar>
-                            <Box>
-                                <Typography variant="body1">{team.leader.name}</Typography>
-                                <Typography variant="body2" color="text.secondary">{team.leader.email}</Typography>
+                        {team.leader ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                                <Avatar sx={{ mr: 2 }}>{team.leader.name ? team.leader.name.charAt(0) : '?'}</Avatar>
+                                <Box>
+                                    <Typography variant="body1">{team.leader.name} {team.leader.lastName}</Typography>
+                                    <Typography variant="body2" color="text.secondary">{team.leader.email}</Typography>
+                                </Box>
                             </Box>
-                        </Box>
+                        ) : (
+                            <Typography variant="body2" color="text.secondary">
+                                Brak informacji o liderze
+                            </Typography>
+                        )}
                     </>
                 ) : (
                     <Box component="form">
@@ -300,50 +350,43 @@ const TeamDetails = () => {
                     )}
                 </Box>
 
-                <List>
-                    {team.members.map((member) => (
-                        <ListItem
-                            key={member._id}
-                            secondaryAction={
-                                isTeamLeader && member._id !== team.leader._id && (
-                                    <IconButton
-                                        edge="end"
-                                        aria-label="delete"
-                                        onClick={() => handleRemoveMember(member._id)}
-                                    >
-                                        <DeleteIcon />
-                                    </IconButton>
-                                )
-                            }
-                        >
-                            <ListItemAvatar>
-                                <Avatar>{member.name.charAt(0)}</Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                                primary={member.name}
-                                secondary={
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        <EmailIcon fontSize="small" sx={{ mr: 0.5 }} />
-                                        {member.email}
-                                        {member._id === team.leader._id && (
-                                            <Chip
-                                                label="Lider"
-                                                color="primary"
-                                                size="small"
-                                                sx={{ ml: 1 }}
-                                            />
-                                        )}
-                                    </Box>
+                {team.members && team.members.length > 0 ? (
+                    <List>
+                        {team.members.map((member) => (
+                            <ListItem
+                                key={member._id}
+                                secondaryAction={
+                                    isTeamLeader && member._id !== team.leader._id && (
+                                        <IconButton
+                                            edge="end"
+                                            color="error"
+                                            onClick={() => handleRemoveMember(member._id)}
+                                        >
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    )
                                 }
-                            />
-                        </ListItem>
-                    ))}
-                </List>
+                            >
+                                <ListItemAvatar>
+                                    <Avatar>{member.name ? member.name.charAt(0) : '?'}</Avatar>
+                                </ListItemAvatar>
+                                <ListItemText
+                                    primary={`${member.name || ''} ${member.lastName || ''}`}
+                                    secondary={member.email}
+                                />
+                            </ListItem>
+                        ))}
+                    </List>
+                ) : (
+                    <Typography variant="body2" color="text.secondary">
+                        Brak członków zespołu.
+                    </Typography>
+                )}
             </Paper>
 
-            <Paper elevation={3} sx={{ p: 3 }}>
+            <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h5">Projekty zespołu</Typography>
+                    <Typography variant="h5">Projekty</Typography>
                     <Button
                         variant="outlined"
                         startIcon={<AddIcon />}
@@ -354,32 +397,36 @@ const TeamDetails = () => {
                 </Box>
 
                 {projects.length > 0 ? (
-                    <Grid container spacing={3}>
+                    <Grid container spacing={2}>
                         {projects.map((project) => (
                             <Grid item xs={12} sm={6} md={4} key={project._id}>
                                 <Card>
                                     <CardContent>
-                                        <Typography variant="h6" gutterBottom>
+                                        <Typography variant="h6" noWrap>
                                             {project.name}
                                         </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                            {project.description}
+                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                            {project.description || 'Brak opisu'}
                                         </Typography>
                                         <Chip
                                             label={project.status}
                                             color={
-                                                project.status === 'completed' ? 'success' :
-                                                    project.status === 'in-progress' ? 'primary' :
-                                                        project.status === 'on-hold' ? 'warning' : 'default'
+                                                project.status === 'completed'
+                                                    ? 'success'
+                                                    : project.status === 'in-progress'
+                                                    ? 'primary'
+                                                    : project.status === 'on-hold'
+                                                    ? 'warning'
+                                                    : 'default'
                                             }
                                             size="small"
+                                            sx={{ mt: 1 }}
                                         />
                                     </CardContent>
                                     <CardActions>
                                         <Button
                                             size="small"
-                                            component={Link}
-                                            to={`/projects/${project._id}`}
+                                            onClick={() => navigate(`/projects/${project._id}`)}
                                         >
                                             Szczegóły
                                         </Button>
@@ -389,24 +436,22 @@ const TeamDetails = () => {
                         ))}
                     </Grid>
                 ) : (
-                    <Alert severity="info" sx={{ mt: 2 }}>
-                        Ten zespół nie ma jeszcze żadnych projektów.
-                    </Alert>
+                    <Typography variant="body2" color="text.secondary">
+                        Brak projektów. Stwórz pierwszy projekt dla tego zespołu.
+                    </Typography>
                 )}
             </Paper>
 
             {/* Dialog dodawania członka */}
             <Dialog open={openAddMemberDialog} onClose={handleAddMemberClose}>
-                <DialogTitle>Dodaj nowego członka</DialogTitle>
+                <DialogTitle>Dodaj członka zespołu</DialogTitle>
                 <DialogContent>
                     <TextField
                         autoFocus
                         margin="dense"
-                        id="email"
                         label="Adres email"
                         type="email"
                         fullWidth
-                        variant="outlined"
                         value={newMemberEmail}
                         onChange={(e) => setNewMemberEmail(e.target.value)}
                     />
@@ -421,48 +466,40 @@ const TeamDetails = () => {
 
             {/* Dialog usuwania zespołu */}
             <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-                <DialogTitle>
-                    Czy na pewno chcesz usunąć ten zespół?
-                </DialogTitle>
+                <DialogTitle>Potwierdź usunięcie</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Ta operacja jest nieodwracalna i spowoduje usunięcie zespołu oraz wszystkich powiązanych projektów i zadań.
+                        Czy na pewno chcesz usunąć zespół "{team.name}"? Tej operacji nie można cofnąć.
                     </Typography>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenDeleteDialog(false)}>Anuluj</Button>
-                    <Button onClick={handleDeleteConfirm} color="error">
+                    <Button onClick={handleDeleteConfirm} color="error" variant="contained">
                         Usuń
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Dialog tworzenia projektu */}
-            <Dialog open={openNewProjectDialog} onClose={handleNewProjectClose} maxWidth="sm" fullWidth>
+            {/* Dialog tworzenia nowego projektu */}
+            <Dialog open={openNewProjectDialog} onClose={handleNewProjectClose}>
                 <DialogTitle>Nowy projekt</DialogTitle>
                 <DialogContent>
                     <TextField
                         autoFocus
                         margin="dense"
-                        id="name"
                         name="name"
                         label="Nazwa projektu"
-                        type="text"
                         fullWidth
-                        variant="outlined"
                         value={newProject.name}
                         onChange={handleNewProjectChange}
-                        sx={{ mb: 2 }}
                     />
                     <TextField
                         margin="dense"
-                        id="description"
                         name="description"
                         label="Opis projektu"
+                        fullWidth
                         multiline
                         rows={4}
-                        fullWidth
-                        variant="outlined"
                         value={newProject.description}
                         onChange={handleNewProjectChange}
                     />
@@ -472,7 +509,7 @@ const TeamDetails = () => {
                     <Button
                         onClick={handleCreateProject}
                         variant="contained"
-                        disabled={!newProject.name.trim()}
+                        disabled={!newProject.name}
                     >
                         Utwórz
                     </Button>
@@ -483,3 +520,4 @@ const TeamDetails = () => {
 };
 
 export default TeamDetails;
+

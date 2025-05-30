@@ -15,7 +15,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
-    register: (name: string, email: string, password: string) => Promise<void>;
+    register: (name: string, lastName: string, email: string, password: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -43,10 +43,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const storedToken = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
 
-        if (storedToken && storedUser) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-            setIsAuthenticated(true);
+        if (storedToken && storedUser && storedUser !== 'undefined') {
+            try {
+                setToken(storedToken);
+                setUser(JSON.parse(storedUser));
+                setIsAuthenticated(true);
+            } catch (error) {
+                console.error('Błąd podczas parsowania danych użytkownika:', error);
+                // Wyczyść potencjalnie uszkodzone dane
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
         }
         setIsLoading(false);
     }, []);
@@ -68,9 +75,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const register = async (name: string, email: string, password: string) => {
+    const register = async (name: string, lastName: string, email: string, password: string) => {
         try {
-            const response = await api.post('/users/register', { name, email, password });
+            const response = await api.post('/users/register', { name, lastName, email, password });
             const { token, user } = response.data;
 
             localStorage.setItem('token', token);
@@ -107,3 +114,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export default AuthContext;
+
