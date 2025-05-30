@@ -1,26 +1,21 @@
 import mongoose, { Schema } from 'mongoose';
-import { IProject } from '../types';
+import { IProjectDocument } from '../types';
 
-const projectSchema = new Schema<IProject>(
-    {
-        name: {
-            type: String,
-            required: true,
-        },
-        description: {
-            type: String,
-        },
-        team: {
-            type: Schema.Types.ObjectId,
-            ref: 'Team',
-            required: true,
-        },
+const projectSchema = new Schema({
+    name: { type: String, required: true },
+    description: { type: String, required: true },
+    team: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    startDate: { type: Date, default: Date.now },
+    endDate: { type: Date },
+    status: {
+        type: String,
+        enum: ['planned', 'in-progress', 'completed', 'on-hold'],
+        default: 'planned'
     },
-    {
-        timestamps: true,
-    }
-);
+    createdAt: { type: Date, default: Date.now },
+});
 
-const Project = mongoose.model<IProject & Document>('Project', projectSchema);
+const Project = mongoose.model<IProjectDocument>('Project', projectSchema);
 
 export default Project;

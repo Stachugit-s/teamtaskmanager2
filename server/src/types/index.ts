@@ -34,10 +34,20 @@ export interface ITeamDocument extends ITeam, Document {
 }
 
 // Interface dla projektu
+// Dodaj do src/types/index.ts
 export interface IProject {
     name: string;
-    description?: string;
-    team: string; // ID zespołu
+    description: string;
+    team: Types.ObjectId;
+    createdBy: Types.ObjectId;
+    startDate: Date;
+    endDate?: Date;
+    status: 'planned' | 'in-progress' | 'completed' | 'on-hold';
+    createdAt: Date;
+}
+
+export interface IProjectDocument extends IProject, Document {
+    _id: Types.ObjectId;
 }
 
 // Interface dla zadania
