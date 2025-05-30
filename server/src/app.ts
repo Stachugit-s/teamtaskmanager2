@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import userRoutes from './routes/userRoutes';
+import teamRoutes from './routes/teamRoutes'; // Dodajemy import tras zespołów
 
 dotenv.config();
 
@@ -16,5 +17,6 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/users', userRoutes);
+app.use('/api/teams', teamRoutes); // Dodajemy trasy zespołów
 
 export default app;

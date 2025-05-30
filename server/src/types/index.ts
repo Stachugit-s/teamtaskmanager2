@@ -23,9 +23,14 @@ export interface IUserDocument extends IUser, Document {
 // Interface dla zespołu
 export interface ITeam {
     name: string;
-    description?: string;
-    leader: string; // ID użytkownika
-    members: string[]; // Tablica ID użytkowników
+    description: string;
+    leader: Types.ObjectId;
+    members: Types.ObjectId[];
+    createdAt: Date;
+}
+
+export interface ITeamDocument extends ITeam, Document {
+    _id: Types.ObjectId;
 }
 
 // Interface dla projektu
